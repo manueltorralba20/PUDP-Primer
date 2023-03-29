@@ -105,12 +105,16 @@ def client():
     header = unpack(
         rcv_msg[:12])  # int(header[0]) will be 0xC356, int(header[2***]) will be 1 if this was DATA packet, etc
     data = rcv_msg[12:].decode('utf-8')  # this has sequence number and session id
+
     while header[2] != 1 :
+        print('BEFORE')
         rcv_msg, addr = s.recvfrom(BUFSIZE)
+        print('AFTER')
         header = unpack(
         rcv_msg[:12])  # int(header[0]) will be 0xC356, int(header[2***]) will be 1 if this was DATA packet, etc
         data = rcv_msg[12:].decode('utf-8')  # this has sequence number and session id
         seq_number+=1
+
     while 1:
         print('inside client while')
         line = sys.stdin.readline()
