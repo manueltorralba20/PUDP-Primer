@@ -122,7 +122,7 @@ def client():
         if not line or line=='q':
             break
         # pack and send
-        header = pack(2, seq_number, SESSION_ID)
+        header = pack(1, seq_number, SESSION_ID)
         # data_msg = header + data.encode('utf-8')
         data_msg = header + line.encode('utf-8')
         s.sendto(data_msg, addr)
