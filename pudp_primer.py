@@ -67,6 +67,7 @@ def server():
             # s.sendto(data, addr)
             seq_number+=1
         elif header[2] == 1:
+            print('inside second if')
             # pack and send
             header = pack(2, seq_number, SESSION_ID)
             # data_msg = header + data.encode('utf-8')
@@ -75,6 +76,8 @@ def server():
 
             # s.sendto(data, addr)
             seq_number += 1
+        else:
+            print('where did i go?')
 
 def client():
     if len(sys.argv) < 3:
