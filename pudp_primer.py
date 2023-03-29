@@ -127,7 +127,7 @@ def client():
         data_msg = header + line.encode('utf-8')
         s.sendto(data_msg, addr)
         seq_number+=1
-        print('client received %r from %r' % (data, fromaddr))
+        print('client received %r from %r' % (data, addr))
     header = pack(3, seq_number, SESSION_ID)
     # data_msg = header + data.encode('utf-8')
     data_msg = header + ''.encode('utf-8')
