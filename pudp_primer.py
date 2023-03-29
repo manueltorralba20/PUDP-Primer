@@ -119,7 +119,7 @@ def client():
     while 1:
         print('inside client while')
         line = sys.stdin.readline()
-        if not line or line=='q':
+        if not line or line=='q\n':
             break
         # pack and send
         header = pack(1, seq_number, SESSION_ID)
