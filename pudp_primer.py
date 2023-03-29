@@ -6,10 +6,13 @@
 # or:    udpecho -c host [port] <file (client)
 
 import sys
+import struct
 from socket import *
 
 ECHO_PORT = 50000 + 7
 BUFSIZE = 1024
+
+SESSION_ID = 25
 
 def main():
     if len(sys.argv) < 2:
@@ -44,15 +47,34 @@ def server():
     s = socket(AF_INET, SOCK_DGRAM)
     s.bind(('', port))
     print('Pudp echo server ready')
+    seq_number = 0
+
     while 1:
-        rcv_msg, rcv_addr = s.recvfrom(BUFSIZE)
-        header = unpack(rcv_msg[:12])  # int(header[0]) will be 0xC356, int(header[2]) will be 1 if this was DATA packet, etc
+        # unpack read stuff
+        rcv_msg, addr = s.recvfrom(BUFSIZE)
+        header = unpack(rcv_msg[:12])  # int(header[0]) will be 0xC356, int(header[2***]) will be 1 if this was DATA packet, etc
         data = rcv_msg[12:].decode('utf-8') # this has sequence number and session id
         print('server received %r from %r' % (data, addr))
 
-        # unpack read stuff
-        # pack and send
-        s.sendto(data, addr)
+        if header[2] == 0 or header[2] == 3:
+            print('inside first if')
+            # pack and send
+            header = pack(header[2], seq_number, SESSION_ID)
+            # data_msg = header + data.encode('utf-8')
+            data_msg = header + ''.encode('utf-8')
+            s.sendto(data_msg, addr)
+
+            # s.sendto(data, addr)
+            seq_number+=1
+        elif header[2] == 1:
+            # pack and send
+            header = pack(2, seq_number, SESSION_ID)
+            # data_msg = header + data.encode('utf-8')
+            data_msg = header + ''.encode('utf-8')
+            s.sendto(data_msg, addr)
+
+            # s.sendto(data, addr)
+            seq_number += 1
 
 def client():
     if len(sys.argv) < 3:
@@ -66,12 +88,40 @@ def client():
     s = socket(AF_INET, SOCK_DGRAM)
     s.bind(('', 0))
     print('udp echo client ready, reading stdin')
+    seq_number = 0
+    # pack and send
+    header = pack(0, seq_number, SESSION_ID)
+    # data_msg = header + data.encode('utf-8')
+    data_msg = header + ''.encode('utf-8')
+    s.sendto(data_msg, addr)
+    seq_number += 1
+
+    # wait for hello back
+    # unpack read stuff
+    rcv_msg, addr = s.recvfrom(BUFSIZE)
+    header = unpack(
+        rcv_msg[:12])  # int(header[0]) will be 0xC356, int(header[2***]) will be 1 if this was DATA packet, etc
+    data = rcv_msg[12:].decode('utf-8')  # this has sequence number and session id
+    while header[2] != 1 :
+        rcv_msg, addr = s.recvfrom(BUFSIZE)
+        header = unpack(
+        rcv_msg[:12])  # int(header[0]) will be 0xC356, int(header[2***]) will be 1 if this was DATA packet, etc
+        data = rcv_msg[12:].decode('utf-8')  # this has sequence number and session id
+        seq_number+=1
     while 1:
         line = sys.stdin.readline()
-        if not line:
+        if not line or line=='q':
             break
-        s.sendto(line, addr)
-        data, fromaddr = s.recvfrom(BUFSIZE)
+        # pack and send
+        header = pack(2, seq_number, SESSION_ID)
+        # data_msg = header + data.encode('utf-8')
+        data_msg = header + line.encode('utf-8')
+        s.sendto(data_msg, addr)
+        seq_number+=1
         print('client received %r from %r' % (data, fromaddr))
-
+    header = pack(3, seq_number, SESSION_ID)
+    # data_msg = header + data.encode('utf-8')
+    data_msg = header + ''.encode('utf-8')
+    s.sendto(data_msg, addr)
+    seq_number += 1
 main()
