@@ -76,8 +76,6 @@ def server():
 
             # s.sendto(data, addr)
             seq_number += 1
-        else:
-            # print('where did i go?')
 
 def client():
     if len(sys.argv) < 3:
