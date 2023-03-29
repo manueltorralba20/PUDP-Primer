@@ -112,6 +112,7 @@ def client():
         data = rcv_msg[12:].decode('utf-8')  # this has sequence number and session id
         seq_number+=1
     while 1:
+        print('inside client while')
         line = sys.stdin.readline()
         if not line or line=='q':
             break
