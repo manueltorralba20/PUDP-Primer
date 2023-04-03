@@ -60,6 +60,7 @@ def server():
     seq_number = 0
     print('Pudp echo server ready')
 
+    # Does not handle/store server state
     while 1:
         # Unpack and read
         rcv_msg, addr = s.recvfrom(BUFSIZE)
