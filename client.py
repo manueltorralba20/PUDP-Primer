@@ -1,9 +1,8 @@
-#! /usr/bin/env python
+#! /usr/bin/env python TODO what is this?
 
-# Client and server for udp (datagram) echo.
+# Client for PUDP client.
 #
-# Usage: udpecho -s [port]            (to start a server)
-# or:    udpecho -c host [port] <file (client)
+# Usage:    client host [port] <file (client)
 
 import sys
 import struct

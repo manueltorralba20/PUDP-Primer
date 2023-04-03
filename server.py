@@ -1,9 +1,8 @@
 #! /usr/bin/env python
 
-# Client and server for udp (datagram) echo.
+# Server for PUDP server.
 #
-# Usage: udpecho -s [port]            (to start a server)
-# or:    udpecho -c host [port] <file (client)
+# Usage: server [port]            (to start a server)
 
 import sys
 import struct
@@ -15,14 +14,13 @@ BUFSIZE = 1024
 SESSION_ID = 25
 
 def main():
-    if len(sys.argv) < 2:
+    if len(sys.argv) > 2:
         usage()
     server()
 
 def usage():
     sys.stdout = sys.stderr
-    print('Usage: udpecho -s [port]            (server)')
-    print('or:    udpecho -c host [port] <file (client)')
+    print('Usage: server [port]            (server)')
     sys.exit(2)
 
 
@@ -35,7 +33,7 @@ def unpack(data):
 
 
 def server():
-    if len(sys.argv) > 2:
+    if len(sys.argv) > 1:
         port = eval(sys.argv[2])
     else:
         port = ECHO_PORT
@@ -76,4 +74,5 @@ def server():
             print('else')
 
 
-main()
+if __name__ == '__main__':
+    main()
