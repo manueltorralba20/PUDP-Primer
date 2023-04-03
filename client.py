@@ -14,16 +14,17 @@ BUFSIZE = 1024
 
 SESSION_ID = 25
 
+
 def main():
-    if len(sys.argv) < 2:
+    if len(sys.argv) < 2 or len(sys.argv) > 3:
         usage()
-        
+
     client()
+
 
 def usage():
     sys.stdout = sys.stderr
-    print('Usage: udpecho -s [port]            (server)')
-    print('or:    udpecho -c host [port] <file (client)')
+    print('Usage:   client host [port] <file (client)')
     sys.exit(2)
 
 
@@ -36,13 +37,12 @@ def unpack(data):
 
 
 def client():
-    if len(sys.argv) < 2:
-        usage()
     host = sys.argv[1]
     if len(sys.argv) > 2:
-        port = eval(sys.argv[2])
+        port = eval(sys.argv[2]) # TODO use something other than eval()?
     else:
         port = ECHO_PORT
+
     addr = host, port
     s = socket(AF_INET, SOCK_DGRAM)
     s.bind(('', 0))
@@ -60,33 +60,40 @@ def client():
     # unpack read stuff
     rcv_msg, addr = s.recvfrom(BUFSIZE)
     header = unpack(
-        rcv_msg[:12])  # int(header[0]) will be 0xC356, int(header[2***]) will be 1 if this was DATA packet, etc
-    data = rcv_msg[12:].decode('utf-8')  # this has sequence number and session id
+        rcv_msg[
+        :12])  # int(header[0]) will be 0xC356, int(header[2***]) will be 1 if this was DATA packet, etc
+    data = rcv_msg[12:].decode(
+        'utf-8')  # this has sequence number and session id
 
-    while header[2] != 0 :
+    while header[2] != 0:
         # print('BEFORE')
         rcv_msg, addr = s.recvfrom(BUFSIZE)
         # print('AFTER')
         header = unpack(
-        rcv_msg[:12])  # int(header[0]) will be 0xC356, int(header[2***]) will be 1 if this was DATA packet, etc
-        data = rcv_msg[12:].decode('utf-8')  # this has sequence number and session id
-        seq_number+=1
+            rcv_msg[
+            :12])  # int(header[0]) will be 0xC356, int(header[2***]) will be 1 if this was DATA packet, etc
+        data = rcv_msg[12:].decode(
+            'utf-8')  # this has sequence number and session id
+        seq_number += 1
 
     while 1:
         # print('inside client while')
         line = sys.stdin.readline()
-        if not line or line=='q\n':
+        if not line or line == 'q\n':
             break
         # pack and send
         header = pack(1, seq_number, SESSION_ID)
         # data_msg = header + data.encode('utf-8')
         data_msg = header + line.encode('utf-8')
         s.sendto(data_msg, addr)
-        seq_number+=1
+        seq_number += 1
         print('client received %r from %r' % (data, addr))
     header = pack(3, seq_number, SESSION_ID)
     # data_msg = header + data.encode('utf-8')
     data_msg = header + ''.encode('utf-8')
     s.sendto(data_msg, addr)
     seq_number += 1
-main()
+
+
+if __name__ == '__main__':
+    main()

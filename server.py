@@ -73,6 +73,7 @@ def server():
             seq_number += 1
         else:
             # print('where did i go?')
+            print('else')
 
 
 main()
