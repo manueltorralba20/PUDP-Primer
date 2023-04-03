@@ -11,15 +11,30 @@ from socket import *
 ECHO_PORT = 50000 + 7
 BUFSIZE = 1024
 
+# Arbitrary session id TODO, this should be dynamic per connection
 SESSION_ID = 25
+
+# Header/protocol constants
+HEADER_LENGTH = 12
+
+# Index for message type/command in header
+COMMAND_INDEX = 2
+
+# Codes for types of messages/commands
+HELLO_CODE = 0
+DATA_CODE = 1
+ALIVE_CODE = 2
+GOODBYE_CODE = 3
+
 
 def main():
     if len(sys.argv) > 2:
         usage()
     server()
 
+
 def usage():
-    sys.stdout = sys.stderr
+    sys.stdout = sys.stderr  # TODO why ?
     print('Usage: server [port]            (server)')
     sys.exit(2)
 
@@ -33,47 +48,50 @@ def unpack(data):
 
 
 def server():
+    # Get port number
     if len(sys.argv) > 1:
         port = eval(sys.argv[2])
     else:
         port = ECHO_PORT
+
+    # Setup socket
     s = socket(AF_INET, SOCK_DGRAM)
     s.bind(('', port))
-    print('Pudp echo server ready')
     seq_number = 0
+    print('Pudp echo server ready')
 
     while 1:
-        # unpack read stuff
+        # Unpack and read
         rcv_msg, addr = s.recvfrom(BUFSIZE)
-        header = unpack(rcv_msg[:12])  # int(header[0]) will be 0xC356, int(header[2***]) will be 1 if this was DATA packet, etc
-        data = rcv_msg[12:].decode('utf-8') # this has sequence number and session id
+        header = unpack(rcv_msg[:HEADER_LENGTH])
+        data = rcv_msg[HEADER_LENGTH:].decode('utf-8')
         print('server received %r from %r' % (data, addr))
 
-        if header[2] == 0 or header[2] == 3:
-            # print('inside first if')
+        # Act according to command code received
+        # Note: ALIVE messages are ignored
+        if header[COMMAND_INDEX] == HELLO_CODE:
             # pack and send
-            header = pack(header[2], seq_number, SESSION_ID)
-            # data_msg = header + data.encode('utf-8')
+            header = pack(header[COMMAND_INDEX], seq_number, SESSION_ID)
             data_msg = header + ''.encode('utf-8')
             s.sendto(data_msg, addr)
-
-            # s.sendto(data, addr)
-            seq_number+=1
-            # TODO leave if GOODBYE! 3
-
-        elif header[2] == 1:
-            # print('inside second if')
-            # pack and send
-            header = pack(2, seq_number, SESSION_ID)
-            # data_msg = header + data.encode('utf-8')
-            data_msg = header + ''.encode('utf-8')
-            s.sendto(data_msg, addr)
-
-            # s.sendto(data, addr)
             seq_number += 1
-        else:
-            # print('where did i go?')
-            print('else')
+
+        elif header[COMMAND_INDEX] == DATA_CODE:
+            # pack and send
+            header = pack(ALIVE_CODE, seq_number, SESSION_ID)
+            data_msg = header + ''.encode('utf-8')
+            s.sendto(data_msg, addr)
+            seq_number += 1
+
+        elif header[COMMAND_INDEX] == GOODBYE_CODE:
+            header = pack(header[COMMAND_INDEX], seq_number, SESSION_ID)
+            data_msg = header + ''.encode('utf-8')
+            s.sendto(data_msg, addr)
+            seq_number += 1
+            break
+
+    # Terminate socket
+    s.close()
 
 
 if __name__ == '__main__':
