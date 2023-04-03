@@ -17,14 +17,14 @@ SESSION_ID = 25
 # Header/protocol constants
 HEADER_LENGTH = 12
 
+# Index for message type/command in header
+COMMAND_INDEX = 2
+
 # Codes for types of messages/commands
 HELLO_CODE = 0
 DATA_CODE = 1
 ALIVE_CODE = 2
 GOODBYE_CODE = 3
-
-# Index for message type/command in header
-COMMAND_INDEX = 2
 
 
 def main():
