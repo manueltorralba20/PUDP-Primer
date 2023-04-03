@@ -59,6 +59,8 @@ def server():
 
             # s.sendto(data, addr)
             seq_number+=1
+            # TODO leave if GOODBYE! 3
+
         elif header[2] == 1:
             # print('inside second if')
             # pack and send

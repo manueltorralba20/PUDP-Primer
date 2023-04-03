@@ -11,13 +11,25 @@ from socket import *
 ECHO_PORT = 50000 + 7
 BUFSIZE = 1024
 
+# Arbitrary session id TODO, this should be updated based on server
 SESSION_ID = 25
+
+# Header/protocol constants
+HEADER_LENGTH = 12
+
+# Codes for types of messages/commands
+HELLO_CODE = 0
+DATA_CODE = 1
+ALIVE_CODE = 2
+GOODBYE_CODE = 3
+
+# Index for message type/command in header
+COMMAND_INDEX = 2
 
 
 def main():
     if len(sys.argv) < 2 or len(sys.argv) > 3:
         usage()
-
     client()
 
 
@@ -36,59 +48,54 @@ def unpack(data):
 
 
 def client():
+    # Get host and port
     host = sys.argv[1]
     if len(sys.argv) > 2:
-        port = eval(sys.argv[2]) # TODO use something other than eval()?
+        port = eval(sys.argv[2])  # TODO use something other than eval()?
     else:
         port = ECHO_PORT
 
+    # Setup socket
     addr = host, port
     s = socket(AF_INET, SOCK_DGRAM)
     s.bind(('', 0))
-    print('udp echo client ready, reading stdin')
+    print('PUDP echo client ready, reading stdin')
     seq_number = 0
 
-    # pack and send
-    header = pack(0, seq_number, SESSION_ID)
-    # data_msg = header + data.encode('utf-8')
+    # pack and send HELLO message to server
+    header = pack(HELLO_CODE, seq_number, SESSION_ID)
     data_msg = header + ''.encode('utf-8')
     s.sendto(data_msg, addr)
     seq_number += 1
 
-    # wait for hello back
-    # unpack read stuff
+    # wait for HELLO back, unpack read stuff
+    # Fencepost for checking receiving messages
     rcv_msg, addr = s.recvfrom(BUFSIZE)
-    header = unpack(
-        rcv_msg[
-        :12])  # int(header[0]) will be 0xC356, int(header[2***]) will be 1 if this was DATA packet, etc
-    data = rcv_msg[12:].decode(
-        'utf-8')  # this has sequence number and session id
+    header = unpack(rcv_msg[:HEADER_LENGTH])
+    data = rcv_msg[HEADER_LENGTH:].decode('utf-8')  # TODO get rid of? unused
 
-    while header[2] != 0:
-        # print('BEFORE')
+    while header[COMMAND_INDEX] != HELLO_CODE:
         rcv_msg, addr = s.recvfrom(BUFSIZE)
-        # print('AFTER')
-        header = unpack(
-            rcv_msg[
-            :12])  # int(header[0]) will be 0xC356, int(header[2***]) will be 1 if this was DATA packet, etc
-        data = rcv_msg[12:].decode(
-            'utf-8')  # this has sequence number and session id
+        header = unpack(rcv_msg[:HEADER_LENGTH])
+        data = rcv_msg[HEADER_LENGTH:].decode('utf-8')  # TODO get rid? unused
         seq_number += 1
 
+    # Input mode!
     while 1:
-        # print('inside client while')
         line = sys.stdin.readline()
-        if not line or line == 'q\n':
+        if not line or line == 'q\n':  # TODO piazza, strip(line) == 'q' ?
             break
-        # pack and send
-        header = pack(1, seq_number, SESSION_ID)
-        # data_msg = header + data.encode('utf-8')
+
+        # Pack and send client data
+        header = pack(DATA_CODE, seq_number, SESSION_ID)
         data_msg = header + line.encode('utf-8')
         s.sendto(data_msg, addr)
         seq_number += 1
-        print('client received %r from %r' % (data, addr))
-    header = pack(3, seq_number, SESSION_ID)
-    # data_msg = header + data.encode('utf-8')
+
+        # TODO no timer/ checks for ALIVE yet
+
+    # All done, send goodbye and terminate
+    header = pack(GOODBYE_CODE, seq_number, SESSION_ID)
     data_msg = header + ''.encode('utf-8')
     s.sendto(data_msg, addr)
     seq_number += 1
