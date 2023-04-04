@@ -55,7 +55,7 @@ def get_msg(recv_socket):
 
     # Length check
     if len(rcv_msg) < HEADER_LENGTH:
-        return None
+        return None, None
 
     header = unpack(rcv_msg[:HEADER_LENGTH])
     data = rcv_msg[HEADER_LENGTH:].decode('utf-8')  # TODO get rid of? unused
@@ -64,7 +64,7 @@ def get_msg(recv_socket):
     if(header[0] != 0xC356 or header[1] != VERSION_NUMBER
             or header[COMMAND_INDEX] < HELLO_CODE
             or header[COMMAND_INDEX] > GOODBYE_CODE):
-        return None
+        return None, None
 
     return header, data
 
@@ -102,7 +102,7 @@ def client():
     # data = rcv_msg[HEADER_LENGTH:].decode('utf-8')  # TODO get rid of? unused
 
     header, data = get_msg(s)
-    while header[COMMAND_INDEX] != HELLO_CODE:
+    while header == None or header[COMMAND_INDEX] != HELLO_CODE:
         header, data = get_msg(s)
         # rcv_msg, addr = s.recvfrom(BUFSIZE)
         # header = unpack(rcv_msg[:HEADER_LENGTH])
