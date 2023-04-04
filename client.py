@@ -28,8 +28,9 @@ DATA_CODE = 1
 ALIVE_CODE = 2
 GOODBYE_CODE = 3
 
-# Used for communicating a TIMOUT
+# Used for communicating a TIMEOUT
 has_timeout = False
+
 
 def main():
     if len(sys.argv) < 2 or len(sys.argv) > 3:
@@ -76,7 +77,7 @@ def send_goodbye(send_socket, seq_number):
     header = pack(GOODBYE_CODE, seq_number, SESSION_ID)
     data_msg = header + ''.encode('utf-8')
     send_socket.sendto(data_msg, addr)
-
+    seq_number += 1
 
 # TODO add threads (one for waiting for stdin, another for waiting on receiving
 # messages
@@ -121,6 +122,7 @@ def client():
     while 1:
         line = sys.stdin.readline()
         if not line or line == 'q\n':  # TODO piazza, strip(line) == 'q' ?
+            print('eof')
             break
         if has_timeout:
             # Detected a timeout between now and last send
@@ -140,7 +142,6 @@ def client():
 
     # All done, send goodbye and terminate
     send_goodbye(s, seq_number)
-    seq_number += 1
 
 
 if __name__ == '__main__':
