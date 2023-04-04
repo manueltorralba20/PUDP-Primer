@@ -69,6 +69,13 @@ def get_msg(recv_socket):
     return header, data
 
 
+# Sends goodbye to send_socket at the current seq_number
+def send_goodbye(send_socket, seq_number):
+    header = pack(GOODBYE_CODE, seq_number, SESSION_ID)
+    data_msg = header + ''.encode('utf-8')
+    send_socket.sendto(data_msg, addr)
+
+
 # TODO add threads (one for waiting for stdin, another for waiting on receiving
 # messages
 # TODO Implement ignoring certain messages, wrong header fields
@@ -102,7 +109,7 @@ def client():
     # data = rcv_msg[HEADER_LENGTH:].decode('utf-8')  # TODO get rid of? unused
 
     header, data = get_msg(s)
-    while header == None or header[COMMAND_INDEX] != HELLO_CODE:
+    while header is None or header[COMMAND_INDEX] != HELLO_CODE:
         header, data = get_msg(s)
         # rcv_msg, addr = s.recvfrom(BUFSIZE)
         # header = unpack(rcv_msg[:HEADER_LENGTH])
@@ -124,9 +131,7 @@ def client():
         # TODO no timer/ checks for ALIVE yet
 
     # All done, send goodbye and terminate
-    header = pack(GOODBYE_CODE, seq_number, SESSION_ID)
-    data_msg = header + ''.encode('utf-8')
-    s.sendto(data_msg, addr)
+    send_goodbye(s, seq_number)
     seq_number += 1
 
 
