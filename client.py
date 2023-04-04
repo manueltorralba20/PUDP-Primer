@@ -28,6 +28,8 @@ DATA_CODE = 1
 ALIVE_CODE = 2
 GOODBYE_CODE = 3
 
+# Used for communicating a TIMOUT
+has_timeout = False
 
 def main():
     if len(sys.argv) < 2 or len(sys.argv) > 3:
@@ -115,18 +117,24 @@ def client():
         # header = unpack(rcv_msg[:HEADER_LENGTH])
         # data = rcv_msg[HEADER_LENGTH:].decode('utf-8')  # TODO get rid? unused
 
-
     # Input mode! TODO start unique thread here
     while 1:
         line = sys.stdin.readline()
         if not line or line == 'q\n':  # TODO piazza, strip(line) == 'q' ?
             break
+        if has_timeout:
+            # Detected a timeout between now and last send
 
-        # Pack and send client data
-        header = pack(DATA_CODE, seq_number, SESSION_ID)
-        data_msg = header + line.encode('utf-8')
-        s.sendto(data_msg, addr)
-        seq_number += 1
+            pass
+        else:
+            # No timeout :D send the data using send method? or make timout thread here?
+            # Pack and send client data
+            header = pack(DATA_CODE, seq_number, SESSION_ID)
+            data_msg = header + line.encode('utf-8')
+            s.sendto(data_msg, addr)
+            seq_number += 1
+
+
 
         # TODO no timer/ checks for ALIVE yet
 
