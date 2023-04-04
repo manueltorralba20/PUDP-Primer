@@ -4,6 +4,7 @@
 #
 # Usage:    client host [port] <file (client)
 
+import random
 import sys
 import struct
 from socket import *
@@ -11,11 +12,12 @@ from socket import *
 ECHO_PORT = 50000 + 7
 BUFSIZE = 1024
 
-# Arbitrary session id TODO, this should be updated based on server
-SESSION_ID = 25
+# Client generates random session ID
+SESSION_ID = random.getrandbits(32)
 
 # Header/protocol constants
 HEADER_LENGTH = 12
+VERSION_NUMBER = 1
 
 # Index for message type/command in header
 COMMAND_INDEX = 2
@@ -47,6 +49,31 @@ def unpack(data):
     return struct.unpack('!HBBII', data)
 
 
+def get_msg(recv_socket):
+    # Wait and get message
+    rcv_msg, addr = recv_socket.recvfrom(BUFSIZE)
+
+    # Length check
+    if len(rcv_msg) < HEADER_LENGTH:
+        return None
+
+    header = unpack(rcv_msg[:HEADER_LENGTH])
+    data = rcv_msg[HEADER_LENGTH:].decode('utf-8')  # TODO get rid of? unused
+
+    # Check if valid message TODO constant 0xC356
+    if(header[0] != 0xC356 or header[1] != VERSION_NUMBER
+            or header[COMMAND_INDEX] < HELLO_CODE
+            or header[COMMAND_INDEX] > GOODBYE_CODE):
+        return None
+
+    return header, data
+
+
+# TODO add threads (one for waiting for stdin, another for waiting on receiving
+# messages
+# TODO Implement ignoring certain messages, wrong header fields
+# TODO Follow all guidelines from in-class exercise (18 questions/edge cases)
+# TODO Implement timer!
 def client():
     # Get host and port
     host = sys.argv[1]
@@ -70,17 +97,19 @@ def client():
 
     # wait for HELLO back, unpack read stuff
     # Fencepost for checking receiving messages
-    rcv_msg, addr = s.recvfrom(BUFSIZE)
-    header = unpack(rcv_msg[:HEADER_LENGTH])
-    data = rcv_msg[HEADER_LENGTH:].decode('utf-8')  # TODO get rid of? unused
+    # rcv_msg, addr = s.recvfrom(BUFSIZE)
+    # header = unpack(rcv_msg[:HEADER_LENGTH])
+    # data = rcv_msg[HEADER_LENGTH:].decode('utf-8')  # TODO get rid of? unused
 
+    header, data = get_msg(s)
     while header[COMMAND_INDEX] != HELLO_CODE:
-        rcv_msg, addr = s.recvfrom(BUFSIZE)
-        header = unpack(rcv_msg[:HEADER_LENGTH])
-        data = rcv_msg[HEADER_LENGTH:].decode('utf-8')  # TODO get rid? unused
-        seq_number += 1
+        header, data = get_msg(s)
+        # rcv_msg, addr = s.recvfrom(BUFSIZE)
+        # header = unpack(rcv_msg[:HEADER_LENGTH])
+        # data = rcv_msg[HEADER_LENGTH:].decode('utf-8')  # TODO get rid? unused
 
-    # Input mode!
+
+    # Input mode! TODO start unique thread here
     while 1:
         line = sys.stdin.readline()
         if not line or line == 'q\n':  # TODO piazza, strip(line) == 'q' ?

@@ -69,7 +69,7 @@ def server():
         print('server received %r from %r' % (data, addr))
 
         # Act according to command code received
-        # Note: ALIVE messages are ignored
+        # Note: ALIVE messages and invalid command codes are ignored
         if header[COMMAND_INDEX] == HELLO_CODE:
             # pack and send
             header = pack(header[COMMAND_INDEX], seq_number, SESSION_ID)
