@@ -131,30 +131,23 @@ def handle_input(my_socket, addr):
         t3 = threading.Timer(0, handle_timeout, [my_socket, addr])
         t3.start()
 
-    print('INPUT DONE')
-
 
 def handle_socket(my_socket, addr):
     global has_timeout
     # Listen for ALIVE messages and update timer and is_ready_state accordingly
     # TODO currently ignoring all messages except ALIVE ones
     while not has_timeout:
-        # print(f'{has_timeout}')
         header, data = get_msg(my_socket)
         while header is None or header[COMMAND_INDEX] != ALIVE_CODE:
             header, data = get_msg(my_socket)
 
-        # TODO lock here ?
-        # lock.acquire()
         global is_ready_state
         global t3
         if not is_ready_state:
-            # print('cancel')
             is_ready_state = True
             t3.cancel()
             t3 = threading.Timer(3, handle_timeout, [my_socket, addr])
 
-        # lock.release()
 
 
 def handle_timeout(my_socket, addr):
@@ -162,8 +155,7 @@ def handle_timeout(my_socket, addr):
     has_timeout = True
     global final_lock
     final_lock.release()
-    send_goodbye(my_socket, addr) # TODO put listen for goodbye / timer in here
-    # TODO quik and dirty, just leave
+    send_goodbye(my_socket, addr)
 
 
 # Sends goodbye to send_socket at the current seq_number
@@ -178,17 +170,11 @@ def send_goodbye(send_socket, addr):
     time.sleep(3)
 
 
-
-# TODO add threads (one for waiting for stdin, another for waiting on receiving
-# messages)
-# TODO Implement ignoring certain messages, wrong header fields
-# TODO Follow all guidelines from in-class exercise (18 questions/edge cases)
-# TODO Implement timer!
 def client():
     # Get host and port
     host = sys.argv[1]
     if len(sys.argv) > 2:
-        port = eval(sys.argv[2])  # TODO use something other than eval()?
+        port = eval(sys.argv[2])
     else:
         port = ECHO_PORT
 
@@ -196,7 +182,6 @@ def client():
     addr = host, port
     s = socket(AF_INET, SOCK_DGRAM)
     s.bind(('', 0))
-    print('PUDP echo client ready, reading stdin')
 
     global seq_number
     seq_number = 0
@@ -226,9 +211,7 @@ def client():
     t1.start()
     t2.start()
 
-    print('WAITING ON FINAL_LOCK')
     final_lock.acquire()
-    print('DONE MAIN')
 
     # # Input mode! TODO start unique thread here
     # while 1:
