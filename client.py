@@ -8,6 +8,7 @@ import random
 import sys
 import struct
 import threading
+import time
 from socket import *
 
 ECHO_PORT = 50000 + 7
@@ -98,9 +99,7 @@ def handle_input(my_socket, addr):
     line = sys.stdin.readline()
     was_eof = False
     while not has_timeout:
-        print('NEW INPUT LINE')
         if not line or line == 'q\n':  # TODO piazza, strip(line) == 'q' ?
-            # print('eof')
             was_eof = True
             has_timeout = True
             break
@@ -174,6 +173,10 @@ def send_goodbye(send_socket, addr):
     data_msg = header + ''.encode('utf-8')
     send_socket.sendto(data_msg, addr)
     seq_number += 1
+
+    # Basically wait 3 seconds before exiting
+    time.sleep(3)
+
 
 
 # TODO add threads (one for waiting for stdin, another for waiting on receiving
