@@ -44,9 +44,6 @@ has_timeout = False
 # seq_number does not need to
 seq_number = 0
 
-# addr_lock = None
-# addr = 0
-
 final_lock = None
 
 
@@ -212,31 +209,6 @@ def client():
     t2.start()
 
     final_lock.acquire()
-
-    # # Input mode! TODO start unique thread here
-    # while 1:
-    #     # TODO file redirection check client.py < file.txt
-    #     line = sys.stdin.readline()
-    #     if not line or line == 'q\n':  # TODO piazza, strip(line) == 'q' ?
-    #         print('eof')
-    #         break
-    #     if has_timeout:
-    #         # Detected a timeout between now and last send
-    #
-    #         pass
-    #     else:
-    #         # No timeout :D send the data using send method? or make timeout
-    #         # thread here?
-    #         # Pack and send client data
-    #         header = pack(DATA_CODE, seq_number, SESSION_ID)
-    #         data_msg = header + line.encode('utf-8')
-    #         s.sendto(data_msg, addr)
-    #         seq_number += 1
-    #
-    #     # TODO no timer/ checks for ALIVE yet
-
-    # All done, send goodbye and terminate
-    # send_goodbye(s)
 
 
 if __name__ == '__main__':
