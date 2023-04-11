@@ -28,6 +28,7 @@ DATA_CODE = 1
 ALIVE_CODE = 2
 GOODBYE_CODE = 3
 
+users = {}
 
 def main():
     # if len(sys.argv) > 2:
@@ -46,16 +47,18 @@ def pack(command, seq, sessionID):
 
 
 def unpack(data):
-    print(f'len of data = {len(data)}')
     return struct.unpack('!HBBII', data)
+
+def bye_print(header):
+    print(f'{header[4]} Session closed')
 
 def debug_print(header, data):
     statement = {
-        0: 'Session created',
-        1: data,
-        3: f'GOODBYE from client.\n{header[4]} Session closed',
+        HELLO_CODE: 'Session created',
+        DATA_CODE: data,
+        GOODBYE_CODE: f'GOODBYE from client.',
     }
-    print(f'{header[4]} [{header[3]}] {statement.get(header[2], header[2])}')
+    print(f'{header[4]} [{header[3]}] {statement.get(header[2])}')
 
 def make_packet(header, data):
     command_coder = {
@@ -64,36 +67,53 @@ def make_packet(header, data):
         GOODBYE_CODE: GOODBYE_CODE,
     }
     new_header = pack(command_coder.get(header[2]), header[3], header[4])
-    return new_header + data.encode('utf-8')
-    pass
+    return new_header + ''.encode('utf-8')
 
 def on_read(handle, ip_port, flags, raw_data, error):
     
     if raw_data is not None:
         header = unpack(raw_data[:HEADER_LENGTH])
-        data = raw_data[HEADER_LENGTH:].decode('utf-8')  # TODO get rid of? unused
-        debug_print(header, data)
-        print(f'handle = {handle}')
-        print(f'ip_port = {ip_port}')
-        print(f'raw_data = {raw_data}')
-        print(f'type of raw_data = {type(raw_data)}')
-        # print(f'data unpacked = {unpack(raw_data)}')
-        print(f'header = {header}')
-        print(f'data unpacked = {data}')
-        print()
+        data = raw_data[HEADER_LENGTH:].decode('utf-8')
+        
+        # print(f'handle = {handle}')
+        # print(f'ip_port = {ip_port}')
+        # print(f'raw_data = {raw_data}')
+        # print(f'type of raw_data = {type(raw_data)}')
+        # print(f'header = {header}')
+        # print(f'data unpacked = {data}')
+        # print()
+        
+        if header[2]==HELLO_CODE and header[4] not in users.keys():
+            debug_print(header, data)
+            users[header[4]] = header[3]
+            new_packet = make_packet(header, data)
+            handle.send(ip_port, new_packet)
+        elif header[2]==DATA_CODE:
+            debug_print(header, data)
+            users[header[4]] = header[3]
+            new_packet = make_packet(header, data)
+            handle.send(ip_port, new_packet)
+        elif header[2]==GOODBYE_CODE:
+            debug_print(header, data)
+            users.pop(header[4])
+            new_packet = make_packet(header, data)
+            handle.send(ip_port, new_packet)
+        else:
+            users.pop(header[4])
+            bye_print(header)
+           
 
-        new_packet = make_packet(header, data)
-        handle.send(ip_port, new_packet)#TODO HUMBERTO FIX THIS
 
-def signal_cb(handle, signum):
-    # signal_h.close()
-    # server.close()
-    pass
-
+def handle_keyboard_input(tty_handle, data, error):
+    # your code here for keyboard input
+    if data=='q':
+        for user in users.keys():
+            print(f'{user} Session closed')
+            # tty_handle.send(ip_port, pack(3, users[user], user)+''.encode('utf-8'))
+            users.pop(user)
+    
 def server():
     # Get port number
-    print(f'sys.argv = {sys.argv}')
-    print(f'length of sys.argv = {len(sys.argv)}')
     if len(sys.argv) == 2:
         port = eval(sys.argv[1])
     else:
@@ -106,53 +126,12 @@ def server():
     server = pyuv.UDP(loop)
     server.bind(("0.0.0.0", port))
     server.start_recv(on_read)
-
-    # signal_h = pyuv.Signal(loop)
-    # signal_h.start(signal_cb, signal.SIGINT)
+    serverTTY = pyuv.TTY(loop, sys.stdin.fileno(), True)
+    serverTTY.start_read(handle_keyboard_input)
 
     loop.run()
 
     print("Stopped!")
-
-    # # Setup socket
-    # s = socket(AF_INET, SOCK_DGRAM)
-    # s.bind(('', port))
-    # seq_number = 0
-    # print('Pudp echo server ready')
-
-    # # Does not handle/store server state
-    # while 1:
-    #     # Unpack and read
-    #     rcv_msg, addr = s.recvfrom(BUFSIZE)
-    #     header = unpack(rcv_msg[:HEADER_LENGTH])
-    #     data = rcv_msg[HEADER_LENGTH:].decode('utf-8')
-    #     print('server received %r from %r' % (data, addr))
-
-    #     # Act according to command code received
-    #     # Note: ALIVE messages and invalid command codes are ignored
-    #     if header[COMMAND_INDEX] == HELLO_CODE:
-    #         # pack and send
-    #         header = pack(header[COMMAND_INDEX], seq_number, SESSION_ID)
-    #         data_msg = header + ''.encode('utf-8')
-    #         s.sendto(data_msg, addr)
-    #         seq_number += 1
-
-    #     elif header[COMMAND_INDEX] == DATA_CODE:
-    #         # pack and send
-    #         header = pack(ALIVE_CODE, seq_number, SESSION_ID)
-    #         data_msg = header + ''.encode('utf-8')
-    #         s.sendto(data_msg, addr)
-    #         seq_number += 1
-
-    #     elif header[COMMAND_INDEX] == GOODBYE_CODE:
-    #         header = pack(header[COMMAND_INDEX], seq_number, SESSION_ID)
-    #         data_msg = header + ''.encode('utf-8')
-    #         s.sendto(data_msg, addr)
-    #         seq_number += 1
-    #         break
-
-    # # Terminate socket
-    # s.close()
 
 
 if __name__ == '__main__':
