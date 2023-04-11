@@ -43,8 +43,10 @@ has_timeout = False
 # seq_number does not need to
 seq_number = 0
 
-# addr_lock
-# addr
+# addr_lock = None
+# addr = 0
+
+final_lock = None
 
 
 def main():
@@ -88,7 +90,7 @@ def get_msg(recv_socket):
 
 
 def handle_input(my_socket, addr):
-    print('handle_input()')
+    # print('handle_input()')
     # Fencepost so the has_timeout check can be one place (while conditional)
     global seq_number
     global t3
@@ -133,9 +135,34 @@ def handle_input(my_socket, addr):
     print('INPUT DONE')
 
 
+def handle_socket(my_socket, addr):
+    global has_timeout
+    # Listen for ALIVE messages and update timer and is_ready_state accordingly
+    # TODO currently ignoring all messages except ALIVE ones
+    while not has_timeout:
+        # print(f'{has_timeout}')
+        header, data = get_msg(my_socket)
+        while header is None or header[COMMAND_INDEX] != ALIVE_CODE:
+            header, data = get_msg(my_socket)
+
+        # TODO lock here ?
+        # lock.acquire()
+        global is_ready_state
+        global t3
+        if not is_ready_state:
+            # print('cancel')
+            is_ready_state = True
+            t3.cancel()
+            t3 = threading.Timer(3, handle_timeout, [my_socket, addr])
+
+        # lock.release()
+
+
 def handle_timeout(my_socket, addr):
     global has_timeout
     has_timeout = True
+    global final_lock
+    final_lock.release()
     send_goodbye(my_socket, addr) # TODO put listen for goodbye / timer in here
     # TODO quik and dirty, just leave
 
@@ -187,32 +214,17 @@ def client():
     global t3
     t3 = threading.Timer(3, handle_timeout, [s, addr])
 
+    global final_lock
+    final_lock = threading.Lock()
+    final_lock.acquire()
     # This running thread (the socket listening thread) is t0
-    # t1 = threading.Thread(target=handle_socket, args=[s, addr], daemon=True)
+    t1 = threading.Thread(target=handle_socket, args=[s, addr], daemon=True)
     t2 = threading.Thread(target=handle_input, args=[s, addr], daemon=True)
-    # t1.start()
+    t1.start()
     t2.start()
 
-    global has_timeout
-    # Listen for ALIVE messages and update timer and is_ready_state accordingly
-    # TODO currently ignoring all messages except ALIVE ones
-    while not has_timeout:
-        # print(f'{has_timeout}')
-        header, data = get_msg(s)
-        while header is None or header[COMMAND_INDEX] != ALIVE_CODE:
-            header, data = get_msg(s)
-
-        # TODO lock here ?
-        # lock.acquire()
-        global is_ready_state
-        if not is_ready_state:
-            # print('cancel')
-            is_ready_state = True
-            t3.cancel()
-            t3 = threading.Timer(3, handle_timeout, [s, addr])
-
-        # lock.release()
-
+    print('WAITING ON FINAL_LOCK')
+    final_lock.acquire()
     print('DONE MAIN')
 
     # # Input mode! TODO start unique thread here
