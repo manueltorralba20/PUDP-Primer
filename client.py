@@ -43,8 +43,8 @@ has_timeout = False
 # seq_number does not need to
 seq_number = 0
 
-addr_lock
-addr
+# addr_lock
+# addr
 
 
 def main():
@@ -88,6 +88,7 @@ def get_msg(recv_socket):
 
 
 def handle_input(my_socket, addr):
+    print('handle_input()')
     # Fencepost so the has_timeout check can be one place (while conditional)
     global seq_number
     global t3
@@ -95,7 +96,7 @@ def handle_input(my_socket, addr):
     line = sys.stdin.readline()
     was_eof = False
     while not has_timeout:
-        # print('NEW INPUT LINE')
+        print('NEW INPUT LINE')
         if not line or line == 'q\n':  # TODO piazza, strip(line) == 'q' ?
             # print('eof')
             was_eof = True
@@ -187,9 +188,9 @@ def client():
     t3 = threading.Timer(3, handle_timeout, [s, addr])
 
     # This running thread (the socket listening thread) is t0
-    t1 = threading.Thread(target=handle_socket, args=[s, addr], daemon=True)
+    # t1 = threading.Thread(target=handle_socket, args=[s, addr], daemon=True)
     t2 = threading.Thread(target=handle_input, args=[s, addr], daemon=True)
-    t1.start()
+    # t1.start()
     t2.start()
 
     global has_timeout
