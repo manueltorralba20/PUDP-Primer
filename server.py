@@ -5,6 +5,7 @@
 # Usage: server [port]            (to start a server)
 
 import pyuv
+import signal
 import sys
 import struct
 from socket import *
@@ -45,11 +46,53 @@ def pack(command, seq, sessionID):
 
 
 def unpack(data):
+    print(f'len of data = {len(data)}')
     return struct.unpack('!HBBII', data)
 
+def debug_print(header, data):
+    statement = {
+        0: 'Session created',
+        1: data,
+        3: f'GOODBYE from client.\n{header[4]} Session closed',
+    }
+    print(f'{header[4]} [{header[3]}] {statement.get(header[2], header[2])}')
+
+def make_packet(header, data):
+    command_coder = {
+        HELLO_CODE: HELLO_CODE,
+        DATA_CODE: ALIVE_CODE,
+        GOODBYE_CODE: GOODBYE_CODE,
+    }
+    new_header = pack(command_coder.get(header[2]), header[3], header[4])
+    return new_header + data.encode('utf-8')
+    pass
+
+def on_read(handle, ip_port, flags, raw_data, error):
+    
+    if raw_data is not None:
+        header = unpack(raw_data[:HEADER_LENGTH])
+        data = raw_data[HEADER_LENGTH:].decode('utf-8')  # TODO get rid of? unused
+        debug_print(header, data)
+        print(f'handle = {handle}')
+        print(f'ip_port = {ip_port}')
+        print(f'raw_data = {raw_data}')
+        print(f'type of raw_data = {type(raw_data)}')
+        # print(f'data unpacked = {unpack(raw_data)}')
+        print(f'header = {header}')
+        print(f'data unpacked = {data}')
+        print()
+
+        new_packet = make_packet(header, data)
+        handle.send(ip_port, new_packet)#TODO HUMBERTO FIX THIS
+
+def signal_cb(handle, signum):
+    # signal_h.close()
+    # server.close()
+    pass
 
 def server():
     # Get port number
+    print(f'sys.argv = {sys.argv}')
     print(f'length of sys.argv = {len(sys.argv)}')
     if len(sys.argv) == 2:
         port = eval(sys.argv[1])
@@ -58,7 +101,18 @@ def server():
 
     print(f'Waiting on port {port}...')
 
+
     loop = pyuv.Loop.default_loop()
+    server = pyuv.UDP(loop)
+    server.bind(("0.0.0.0", port))
+    server.start_recv(on_read)
+
+    # signal_h = pyuv.Signal(loop)
+    # signal_h.start(signal_cb, signal.SIGINT)
+
+    loop.run()
+
+    print("Stopped!")
 
     # # Setup socket
     # s = socket(AF_INET, SOCK_DGRAM)
