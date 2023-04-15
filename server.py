@@ -82,25 +82,26 @@ def on_read(handle, ip_port, flags, raw_data, error):
         # print(f'header = {header}')
         # print(f'data unpacked = {data}')
         # print()
-        
-        if header[2]==HELLO_CODE and header[4] not in users.keys():
-            debug_print(header, data)
-            users[header[4]] = header[3]
-            new_packet = make_packet(header, data)
-            handle.send(ip_port, new_packet)
-        elif header[2]==DATA_CODE:
-            debug_print(header, data)
-            users[header[4]] = header[3]
-            new_packet = make_packet(header, data)
-            handle.send(ip_port, new_packet)
-        elif header[2]==GOODBYE_CODE:
-            debug_print(header, data)
-            users.pop(header[4])
-            new_packet = make_packet(header, data)
-            handle.send(ip_port, new_packet)
-        else:
-            users.pop(header[4])
-            bye_print(header)
+        # print(f'header[0] = {header[0]}')
+        if header[0] == 50006:
+            if header[2]==HELLO_CODE and header[4] not in users.keys():
+                debug_print(header, data)
+                users[header[4]] = header[3]
+                new_packet = make_packet(header, data)
+                handle.send(ip_port, new_packet)
+            elif header[2]==DATA_CODE:
+                debug_print(header, data)
+                users[header[4]] = header[3]
+                new_packet = make_packet(header, data)
+                handle.send(ip_port, new_packet)
+            elif header[2]==GOODBYE_CODE:
+                debug_print(header, data)
+                users.pop(header[4])
+                new_packet = make_packet(header, data)
+                handle.send(ip_port, new_packet)
+            else:
+                users.pop(header[4])
+                bye_print(header)
            
 
 
