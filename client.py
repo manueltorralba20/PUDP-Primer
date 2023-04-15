@@ -1,4 +1,4 @@
-#! /usr/bin/env python TODO what is this?
+#! /usr/bin/env python
 
 # Client for PUDP client.
 #
@@ -84,6 +84,23 @@ def get_msg(recv_socket):
             or header[COMMAND_INDEX] > GOODBYE_CODE):
         return None, None
 
+    if header[COMMAND_INDEX] == DATA_CODE or header[4] != SESSION_ID:
+        # Send goodbye and close
+        # print(f'header[4] = {header[4]}')
+        # print(f'session_id {SESSION_ID}')
+        # print(f'header[1] = {header[1]}')
+        # print(f'data-code = {DATA_CODE}')
+        global t3
+        t3 = threading.Timer(0, handle_timeout, [recv_socket, addr])
+        t3.start()
+
+    if header[1] == GOODBYE_CODE:
+        # CLOSE
+        global has_timeout
+        has_timeout = True
+        global final_lock
+        final_lock.release()
+
     return header, data
 
 
@@ -146,7 +163,6 @@ def handle_socket(my_socket, addr):
             t3 = threading.Timer(3, handle_timeout, [my_socket, addr])
 
 
-
 def handle_timeout(my_socket, addr):
     global has_timeout
     has_timeout = True
@@ -189,19 +205,21 @@ def client():
     s.sendto(data_msg, addr)
     seq_number += 1
 
+    global final_lock
+    final_lock = threading.Lock()
+    final_lock.acquire()
+
     # Wait for HELLO back, unpack read stuff
     # Fencepost for checking receiving messages
     # TODO check for wrong session ID, ignore as well ?
     header, data = get_msg(s)
-    while header is None or header[COMMAND_INDEX] != HELLO_CODE:
+    while header is None and header[COMMAND_INDEX] != HELLO_CODE:
         header, data = get_msg(s)
 
     global t3
     t3 = threading.Timer(3, handle_timeout, [s, addr])
 
-    global final_lock
-    final_lock = threading.Lock()
-    final_lock.acquire()
+
     # This running thread (the socket listening thread) is t0
     t1 = threading.Thread(target=handle_socket, args=[s, addr], daemon=True)
     t2 = threading.Thread(target=handle_input, args=[s, addr], daemon=True)
